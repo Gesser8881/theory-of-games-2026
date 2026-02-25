@@ -1,0 +1,96 @@
+import streamlit as st
+import random
+import pandas as pd
+import plotly.graph_objects as go
+
+# Настройки стиля "Киберпанк/Математика"
+st.set_page_config(page_title="Navigator 2026", layout="wide")
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; color: #ffffff; }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] { height: 50px; background-color: #262730; border-radius: 5px; color: white; }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("🛡️ Стратегический навигатор: Теория Игр")
+st.write("---")
+
+# Инициализация истории игр в памяти браузера
+if 'history' not in st.session_state:
+    st.session_state.history = {'win': 0, 'loss': 0}
+
+# --- ОСНОВНОЕ МЕНЮ ---
+tab1, tab2, tab3 = st.tabs(["📊 Алгоритм Победы", "🧬 Симулятор Эволюции", "🎮 Тест Навигатора"])
+
+# --- ВКЛАДКА 1: ВИЗУАЛЬНЫЙ АЛГОРИТМ ---
+with tab1:
+    st.header("Оцифровка интересов (из гл. 4 твоего проекта)")
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.write("Настрой параметры ситуации:")
+        risk = st.slider("Уровень риска (Критерий Вальда)", 0, 100, 50)
+        trust = st.slider("Уровень доверия к оппоненту", 0, 100, 30)
+    
+    with col2:
+        # Рисуем радарную диаграмму стратегии
+        fig = go.Figure(data=go.Scatterpolar(
+          r=[risk, trust, 100-risk, (risk+trust)/2, 80],
+          theta=['Риск','Доверие','Стабильность','Профит', 'Этика'],
+          fill='toself'
+        ))
+        fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False)
+        st.plotly_chart(fig)
+
+# --- ВКЛАДКА 2: СИМУЛЯТОР (МОНТИ ХОЛЛ НА МАКСИМАЛКАХ) ---
+with tab2:
+    st.header("Математическое доказательство")
+    st.write("Запустим 5000 игр мгновенно, чтобы увидеть распределение вероятностей.")
+    
+    if st.button("🚀 Запустить супер-симуляцию"):
+        wins_stay = 0
+        wins_switch = 0
+        results = []
+        
+        for i in range(1, 5001):
+            car = random.randint(0, 2)
+            choice = random.randint(0, 2)
+            # Если не меняем - победа только если сразу угадали
+            if choice == car: wins_stay += 1
+            # Если меняем - победа в 2/3 случаев
+            else: wins_switch += 1
+            
+            if i % 100 == 0:
+                results.append({"Игр": i, "Смена": (wins_switch/i)*100, "Постоянство": (wins_stay/i)*100})
+        
+        df_res = pd.DataFrame(results)
+        st.line_chart(df_res.set_index("Игр"))
+        st.success(f"Итог: Смена двери дает {df_res['Смена'].iloc[-1]:.1f}% побед. Твой проект прав!")
+
+# --- ВКЛАДКА 3: ИГРА С "НАВИГАТОРОМ" ---
+with tab3:
+    st.header("Игра: Дилемма на маркетплейсе (стр. 12)")
+    st.write("Ты и конкурент продаете товар. Снизишь цену или будешь держать высокую?")
+    
+    col_a, col_b = st.columns(2)
+    with col_a:
+        user_move = st.selectbox("Твой ход:", ["Держать цену (Сотрудничество)", "Снизить цену (Демпинг)"])
+        play = st.button("Подтвердить сделку")
+    
+    if play:
+        # ИИ анализирует твои прошлые ходы (если бы они были)
+        # Но сейчас выберем рациональное Равновесие Нэша
+        opp_move = "Снизить цену (Демпинг)" 
+        
+        with col_b:
+            st.info(f"Конкурент выбрал: {opp_move}")
+            if user_move == "Держать цену (Сотрудничество)":
+                st.error("Ты потерял клиентов! Твоя прибыль: -100. Конкурент забрал всё.")
+                st.session_state.history['loss'] += 1
+            else:
+                st.warning("Ценовая война! Оба торгуете в ноль. Прибыль: 0.")
+                st.session_state.history['win'] += 1
+    
+    st.write("---")
+    st.metric("Твой рейтинг рациональности", f"{st.session_state.history['win']} побед/ничьих")
